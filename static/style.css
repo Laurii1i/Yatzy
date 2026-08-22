@@ -31,17 +31,12 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 24px;
   padding: 14px 24px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
-}
-
-.topbar h1 {
-  font-size: 1.25rem;
-  margin: 0;
 }
 
 .topbar-actions {

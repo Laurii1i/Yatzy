@@ -409,6 +409,10 @@ function renderBreakdownTable(history) {
 function showFinal(final) {
   el("final-modal").hidden = false;
   el("final-score-value").textContent = final.score;
+  const pct = session.accuracy * 100;
+  const accuracyEl = el("final-accuracy-value");
+  accuracyEl.textContent = `${pct.toFixed(1)}%`;
+  accuracyEl.style.color = accuracyColor(pct);
   el("final-lost-value").textContent = session.ev_lost_total.toFixed(1);
   el("final-rank-value").textContent = final.ranks
     ? `#${final.ranks.accuracy_rank}/${final.ranks.total_games}`
