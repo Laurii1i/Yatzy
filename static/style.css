@@ -145,7 +145,6 @@ button.gold:hover { filter: brightness(1.06); }
 }
 
 .dice-row-wrap {
-  position: relative;
   width: fit-content;
   margin: 0 auto 16px;
 }
@@ -157,23 +156,38 @@ button.gold:hover { filter: brightness(1.06); }
   height: 64px;
 }
 
+.dice-controls {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
 .dice-feedback {
   /* Absolutely positioned so its (variable-length) text can never affect
-     the roll box's size -- it just overlays to the right of the dice. */
+     the roll box's size -- it pops up over the Roll button instead. */
   position: absolute;
-  left: 100%;
-  top: 50%;
-  margin-left: 16px;
-  transform: translateY(-50%);
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 6px;
+  transform: translate(-50%, 4px);
   white-space: nowrap;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--panel);
+  box-shadow: 0 6px 18px rgba(20, 22, 28, 0.2);
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
   pointer-events: none;
 }
 
-.dice-feedback.visible { opacity: 1; }
+.dice-feedback.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 .dice-feedback.optimal { color: var(--good); }
 .dice-feedback.suboptimal { color: var(--bad); }
 
@@ -210,6 +224,23 @@ button.gold:hover { filter: brightness(1.06); }
 .pip.bl { grid-row: 3; grid-column: 1; }
 .pip.br { grid-row: 3; grid-column: 3; }
 
+@media (max-width: 480px) {
+  .dice-row {
+    gap: 8px;
+    height: 48px;
+  }
+  .die {
+    width: 48px;
+    height: 48px;
+    padding: 8px;
+    border-radius: 10px;
+  }
+  .pip {
+    width: 7px;
+    height: 7px;
+  }
+}
+
 .die.held {
   border-color: var(--held);
   background: #fff8e1;
@@ -231,12 +262,6 @@ button.gold:hover { filter: brightness(1.06); }
 .die.rolling {
   animation: dice-roll 0.22s ease-in-out infinite;
   border-color: var(--accent);
-}
-
-.dice-controls {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
 }
 
 #roll-btn {

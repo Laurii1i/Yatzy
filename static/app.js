@@ -253,6 +253,7 @@ function toggleHold(i) {
   renderDice();
 }
 
+const DICE_FEEDBACK_POP_MS = 2000;
 const FEEDBACK_POP_MS = 2600;
 const FEEDBACK_FADE_MS = 250;
 
@@ -265,9 +266,9 @@ function clearDiceFeedback() {
   badge.textContent = "";
 }
 
-// Pops "Optimal!" / "Optimal was [...]" right next to the dice row, inside
-// the roll box, then fades out on its own after a few seconds. Positioned
-// absolutely (see CSS) so its text never affects the roll box's size.
+// Pops "Optimal!" / "Optimal was [...]" over the Roll button, then fades
+// out on its own after 2s. Positioned absolutely (see CSS) so its text
+// never affects the roll box's size.
 function popDiceFeedback(judgment) {
   clearTimeout(diceFeedbackTimer);
   const badge = el("dice-feedback");
@@ -277,7 +278,7 @@ function popDiceFeedback(judgment) {
   badge.className = "dice-feedback " + (judgment.optimal ? "optimal" : "suboptimal") + " visible";
   diceFeedbackTimer = setTimeout(() => {
     badge.classList.remove("visible");
-  }, FEEDBACK_POP_MS);
+  }, DICE_FEEDBACK_POP_MS);
 }
 
 // Pops a small badge next to a scorecard row's Fill button (right side of
