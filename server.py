@@ -20,6 +20,21 @@ logger = logging.getLogger("yatzy")
 
 app = FastAPI(title="Yatzy Trainer")
 
+
+@app.middleware("http")
+async def no_cache_for_static(request, call_next):
+    """Without this, StaticFiles only sends ETag/Last-Modified with no
+    Cache-Control, so browsers apply heuristic caching and can keep serving
+    a stale app.js/style.css for a while after a deploy without even
+    re-checking. `no-cache` doesn't disable caching -- it forces a
+    revalidation request (cheap 304 if unchanged) before ever reusing a
+    cached copy, so a fresh deploy is picked up immediately."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 CATEGORY_NAME_TO_COL = {name: i for i, name in enumerate(ge.CATEGORY_NAMES)}
 
 MAX_NICKNAME_LEN = 32
