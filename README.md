@@ -1,9 +1,10 @@
 # Yatzy Trainer
 
-Play Scandinavian Yatzy locally and get feedback, after every hold and every
+Play Scandinavian Yatzy and get feedback, after every hold and every
 category-fill, on whether your move matched optimal play under the
 precomputed value function (`GAME_STATE_V`, solved via DP, loaded from
-`game_values.csv`). No database, no recomputation of the DP, no auth.
+`game_values.csv`). Nickname-gated, with a Postgres-backed hiscores board
+(ranked by accuracy, tiebroken by completion time; also sortable by score).
 
 ## What's in here
 
@@ -12,9 +13,13 @@ precomputed value function (`GAME_STATE_V`, solved via DP, loaded from
   it also exposes the underlying **value arrays** (not just argmaxes). This
   is what lets the app judge a move by EV gap against the best legal move,
   rather than by argmax match (so ties are scored as optimal, correctly).
-- `server.py` — FastAPI app: endpoints (`new_game`, `roll`, `hold`, `fill`)
-  backed by in-memory game sessions, plus static file serving for the
-  frontend.
+  Also owns the `Session` dataclass (in-memory, per-game state).
+- `server.py` — FastAPI app: endpoints (`new_game`, `roll`, `hold`, `fill`,
+  `hiscores`) backed by in-memory game sessions, plus static file serving
+  for the frontend.
+- `db.py` — Postgres access for the hiscores table (`psycopg2`, a small
+  threaded connection pool, plain SQL — no ORM). `init_db()` creates the
+  table/indexes if missing; runs once at FastAPI startup.
 - `static/` — plain HTML/CSS/JS frontend. No build step.
 - `verify_engine.py` — a standalone correctness check: confirms
   `GAME_STATE_V[full_open, 0] ≈ 248.44`, and that a scripted playthrough
@@ -28,21 +33,42 @@ precomputed value function (`GAME_STATE_V`, solved via DP, loaded from
 pip install -r requirements.txt
 ```
 
-(Everything needed — `fastapi`, `uvicorn`, `numpy`, `pydantic` — was already
-installed in this environment; the file is there for a clean machine.)
+You'll also need a Postgres instance for local development. The easiest way
+is a throwaway Docker container (the app itself is *not* containerized —
+this is just for a local database to develop against):
+
+```
+docker run --rm -p 5433:5432 -e POSTGRES_PASSWORD=devpass -e POSTGRES_DB=yatzy postgres:16
+```
 
 ## Run
 
-Single command, single port — the backend serves the frontend directly:
-
 ```
+export DATABASE_URL=postgresql://postgres:devpass@localhost:5433/yatzy
 uvicorn server:app --port 8000
 ```
 
-Then open **http://127.0.0.1:8000/** in a browser.
+(On Windows PowerShell: `$env:DATABASE_URL = "postgresql://postgres:devpass@localhost:5433/yatzy"`.)
 
-Startup loads `game_values.csv` (~39MB) and builds the precomputes tables;
-this takes about a second.
+Then open **http://127.0.0.1:8000/** in a browser. `DATABASE_URL` is
+required — the app fails fast at startup if it's not set.
+
+Startup loads `game_values.csv` (~39MB), builds the precomputes tables, and
+creates the `games` table if it doesn't exist yet; this takes about a
+second.
+
+## Deploying (Railway)
+
+The app deploys via Railway's Nixpacks builder (see `Procfile`) — no
+Dockerfile needed, `psycopg2-binary` ships prebuilt wheels just like `numpy`
+does. One-time setup in the Railway project:
+
+1. **New → Database → PostgreSQL** to provision a Postgres plugin.
+2. On the web service, add an env var `DATABASE_URL` =
+   `${{Postgres.DATABASE_PRIVATE_URL}}` — the internal
+   (`postgres.railway.internal`) variant, not the public proxy URL, since
+   both services live in the same Railway project.
+3. Redeploy (Railway triggers this automatically when the env var changes).
 
 ## Verify correctness (optional, before/instead of playing)
 
@@ -96,3 +122,21 @@ suboptimal move, along with what the optimal move was.
   with your current dice once you're out of rerolls and must fill.
 - Running score and accuracy (`optimal moves / total moves`) are tracked
   and shown throughout the game.
+
+## Hiscores & nicknames
+
+- On first load, you're asked for a nickname (remembered in `localStorage`
+  after that, so you're not re-prompted every visit). It's sent with
+  `POST /api/new_game` and attached to the game session.
+- Completion time starts on your **first roll** of turn 1 (not when the page
+  loads), so idle time before you start doesn't count against you.
+- When a game ends, a row is written to the `games` table: nickname, total
+  score, accuracy, completion time, and timestamp. A DB write failure never
+  breaks your game-over screen — it's logged and swallowed
+  (`server.py`'s `/api/fill` handler).
+- The **Hiscores** button opens a leaderboard, `GET /api/hiscores?sort=...`:
+  - `sort=accuracy` (default) — ranked by accuracy, ties broken by faster
+    completion time.
+  - `sort=score` — ranked by total score.
+- Nicknames aren't authenticated — no accounts, no uniqueness — this is a
+  casual leaderboard, not a login system.

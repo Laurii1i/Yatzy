@@ -9,7 +9,10 @@
 <body>
   <header class="topbar">
     <h1>So you think you can play Yatzee?</h1>
-    <button id="new-game-btn">New Game</button>
+    <div class="topbar-actions">
+      <button id="hiscores-btn" class="ghost">Hiscores</button>
+      <button id="new-game-btn">New Game</button>
+    </div>
   </header>
 
   <main id="app">
@@ -51,6 +54,36 @@
       <h2>Game Over</h2>
       <p id="final-text"></p>
       <button id="final-new-game-btn">Play Again</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="nickname-modal">
+    <div class="modal">
+      <h2>What should we call you?</h2>
+      <p>Your nickname is used to record your games on the hiscores board.</p>
+      <form id="nickname-form">
+        <input id="nickname-input" type="text" maxlength="32" placeholder="Nickname" autocomplete="off" required />
+        <button type="submit">Start Playing</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="hiscores-modal" hidden>
+    <div class="modal modal-wide">
+      <h2>Hiscores</h2>
+      <div class="hiscores-sort-toggle">
+        <button id="sort-accuracy-btn" class="ghost sort-btn active">By Accuracy</button>
+        <button id="sort-score-btn" class="ghost sort-btn">By Score</button>
+      </div>
+      <div class="hiscores-table-wrap">
+        <table class="hiscores-table" id="hiscores-table">
+          <thead>
+            <tr><th>#</th><th>Nickname</th><th>Score</th><th>Accuracy</th><th>Time</th><th>Date</th></tr>
+          </thead>
+          <tbody id="hiscores-body"></tbody>
+        </table>
+      </div>
+      <button id="hiscores-close-btn" class="ghost">Close</button>
     </div>
   </div>
 

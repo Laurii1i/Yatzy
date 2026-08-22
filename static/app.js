@@ -106,12 +106,13 @@ function animateRolling(dieEls, animateIdx) {
   });
 }
 
-async function api(path, body) {
-  const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+async function api(path, body, method = "POST") {
+  const opts = { method };
+  if (body) {
+    opts.headers = { "Content-Type": "application/json" };
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(path, opts);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail || "request failed");
@@ -146,13 +147,22 @@ function multisetDiff(values, subtract) {
   return remaining;
 }
 
+let currentNickname = "";
+
 async function newGame() {
   held.clear();
   displayDice = [];
   el("final-modal").hidden = true;
   clearDiceFeedback();
-  session = await api("/api/new_game");
+  session = await api("/api/new_game", { nickname: currentNickname });
   render();
+}
+
+function startWithNickname(nickname) {
+  currentNickname = nickname;
+  localStorage.setItem("nickname", nickname);
+  el("nickname-modal").hidden = true;
+  newGame();
 }
 
 async function rollOrReroll() {
@@ -292,6 +302,66 @@ function showFinal(final) {
   el("final-modal").hidden = false;
   el("final-text").textContent =
     `Final score: ${final.score}. Accuracy: ${(session.accuracy * 100).toFixed(1)}%.`;
+}
+
+let currentHiscoresSort = "accuracy";
+
+function formatDuration(seconds) {
+  const total = Math.round(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function formatDate(isoString) {
+  return new Date(isoString).toLocaleDateString(undefined, {
+    year: "numeric", month: "short", day: "numeric",
+  });
+}
+
+function renderHiscores(rows) {
+  const body = el("hiscores-body");
+  body.innerHTML = "";
+  if (rows.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 6;
+    td.className = "hiscores-empty";
+    td.textContent = "No games recorded yet.";
+    tr.appendChild(td);
+    body.appendChild(tr);
+    return;
+  }
+  rows.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    const cells = [
+      i + 1,
+      row.nickname,
+      row.total_score,
+      `${(row.accuracy * 100).toFixed(1)}% (${row.moves_optimal}/${row.moves_total})`,
+      formatDuration(row.completion_seconds),
+      formatDate(row.played_at),
+    ];
+    cells.forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+}
+
+async function openHiscores(sort) {
+  currentHiscoresSort = sort;
+  el("sort-accuracy-btn").classList.toggle("active", sort === "accuracy");
+  el("sort-score-btn").classList.toggle("active", sort === "score");
+  el("hiscores-modal").hidden = false;
+  try {
+    const { rows } = await api(`/api/hiscores?sort=${sort}&limit=20`, null, "GET");
+    renderHiscores(rows);
+  } catch (e) {
+    alert(e.message);
+  }
 }
 
 // Red at/below 50%, amber around 80%, green at 100%, linearly interpolated
@@ -462,4 +532,21 @@ el("new-game-btn").onclick = newGame;
 el("final-new-game-btn").onclick = newGame;
 el("roll-btn").onclick = rollOrReroll;
 
-newGame();
+el("nickname-form").onsubmit = (e) => {
+  e.preventDefault();
+  const nickname = el("nickname-input").value.trim();
+  if (!nickname) return;
+  startWithNickname(nickname);
+};
+
+el("hiscores-btn").onclick = () => openHiscores(currentHiscoresSort);
+el("hiscores-close-btn").onclick = () => {
+  el("hiscores-modal").hidden = true;
+};
+el("sort-accuracy-btn").onclick = () => openHiscores("accuracy");
+el("sort-score-btn").onclick = () => openHiscores("score");
+
+const savedNickname = localStorage.getItem("nickname");
+if (savedNickname) {
+  startWithNickname(savedNickname);
+}

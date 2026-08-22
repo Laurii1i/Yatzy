@@ -6,21 +6,37 @@ in-memory session dict (no database), and serves the static frontend.
 Run:  uvicorn server:app --reload --port 8000
 Then open http://127.0.0.1:8000/
 """
+import logging
 from typing import List
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+import db
 import game_engine as ge
+
+logger = logging.getLogger("yatzy")
 
 app = FastAPI(title="Yatzy Trainer")
 
 CATEGORY_NAME_TO_COL = {name: i for i, name in enumerate(ge.CATEGORY_NAMES)}
 
+MAX_NICKNAME_LEN = 32
+HISCORES_SORTS = {"accuracy", "score"}
+
+
+@app.on_event("startup")
+def on_startup():
+    db.init_db()
+
 
 class SessionRequest(BaseModel):
     session_id: str
+
+
+class NewGameRequest(BaseModel):
+    nickname: str
 
 
 class HoldRequest(BaseModel):
@@ -41,9 +57,23 @@ def _session_or_404(session_id: str) -> ge.Session:
 
 
 @app.post("/api/new_game")
-def new_game():
-    s = ge.new_session()
+def new_game(req: NewGameRequest):
+    nickname = req.nickname.strip()
+    if not nickname:
+        raise HTTPException(status_code=400, detail="nickname is required")
+    if len(nickname) > MAX_NICKNAME_LEN:
+        raise HTTPException(status_code=400, detail=f"nickname must be at most {MAX_NICKNAME_LEN} characters")
+
+    s = ge.new_session(nickname)
     return s.public_state()
+
+
+@app.get("/api/hiscores")
+def hiscores(sort: str = "accuracy", limit: int = 20):
+    if sort not in HISCORES_SORTS:
+        raise HTTPException(status_code=400, detail=f"sort must be one of {sorted(HISCORES_SORTS)}")
+    limit = max(1, min(limit, 100))
+    return {"rows": db.fetch_hiscores(sort, limit)}
 
 
 @app.get("/api/state/{session_id}")
@@ -123,6 +153,14 @@ def fill(req: FillRequest):
             "score": s.total,
             "optimal_expected_score": ge.OPTIMAL_EXPECTED_SCORE,
         }
+        # A hiscores write failing must never break the player's game-over
+        # response -- log and move on.
+        try:
+            db.insert_game(
+                s.nickname, s.total, s.accuracy(), s.moves_optimal, s.moves_total, s.elapsed_seconds()
+            )
+        except Exception:
+            logger.exception("failed to record hiscore for session %s", s.session_id)
     else:
         s.start_turn()
 

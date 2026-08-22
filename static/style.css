@@ -44,6 +44,11 @@ body {
   margin: 0;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
 button {
   font: inherit;
   border: none;
@@ -362,4 +367,75 @@ table.scorecard tr.grand-total-row td {
 }
 
 .modal h2 { margin-top: 0; }
-.modal p { font-size: 0.95rem; line-height: 1.5; }
+.modal p { font-size: 0.95rem; line-height: 1.5; color: var(--muted); }
+
+.modal-wide {
+  max-width: 640px;
+  width: 100%;
+}
+
+#nickname-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+#nickname-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.hiscores-sort-toggle {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.sort-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.hiscores-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+table.hiscores-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+table.hiscores-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+table.hiscores-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+table.hiscores-table tbody tr:first-child td {
+  font-weight: 700;
+}
+
+td.hiscores-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 24px 10px;
+}

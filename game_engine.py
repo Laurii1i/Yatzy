@@ -5,6 +5,7 @@ judging. No recomputation of the DP happens here -- GAME_STATE_V is loaded
 from disk and everything else is derived from it plus the precomputes tables.
 """
 import random
+import time
 import uuid
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -182,6 +183,7 @@ def judge_fill(state: StateSolve, dice, u: int, category_col: int):
 @dataclass
 class Session:
     session_id: str
+    nickname: str = ""
     idx: int = FULL_OPEN_IDX
     u: int = 0
     total: int = 0
@@ -193,6 +195,7 @@ class Session:
     moves_optimal: int = 0
     ev_lost_total: float = 0.0
     filled: dict = field(default_factory=dict)  # category name -> points scored there
+    started_at: Optional[float] = None  # time.monotonic() at the first roll of turn 1
 
     def start_turn(self):
         """Reset for a new turn, awaiting an explicit first roll (dice stays
@@ -201,7 +204,16 @@ class Session:
         self.rerolls_remaining = 2
 
     def apply_first_roll(self):
+        # Completion time starts here (not at session creation) so idle time
+        # between opening the page and actually rolling isn't counted.
+        if self.turn == 1 and self.started_at is None:
+            self.started_at = time.monotonic()
         self.dice = sorted(roll_dice(5))
+
+    def elapsed_seconds(self):
+        if self.started_at is None:
+            return 0.0
+        return time.monotonic() - self.started_at
 
     def record_move(self, ev_cost: float, optimal: bool):
         self.moves_total += 1
@@ -251,9 +263,9 @@ class Session:
 SESSIONS: dict[str, Session] = {}
 
 
-def new_session() -> Session:
+def new_session(nickname: str) -> Session:
     sid = uuid.uuid4().hex
-    s = Session(session_id=sid)
+    s = Session(session_id=sid, nickname=nickname)
     s.start_turn()
     SESSIONS[sid] = s
     return s
