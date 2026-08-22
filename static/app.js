@@ -690,11 +690,16 @@ let analysisDice = [1, 1, 1, 1, 1];
 let analysisDraftCounts = [0, 0, 0, 0, 0, 0];
 
 function updateAnalysisButtonState() {
-  const blocked = !!(session && !session.game_over);
+  // Only block once dice are actually on the table (i.e. after the first
+  // roll of a turn) -- not just because a game exists. Re-enables between
+  // turns (dice reset to empty while awaiting the next roll) and once the
+  // game is over (game_over is checked separately since a finished game's
+  // `dice` is left showing the final turn's roll, not cleared to empty).
+  const blocked = !!(session && !session.game_over && session.dice.length > 0);
   const btn = el("analysis-btn");
   btn.disabled = blocked;
   btn.title = blocked
-    ? "Finish or start a new game first — Game Analysis is disabled during an active game."
+    ? "Game Analysis is disabled while dice are in play — finish this turn's decision first."
     : "";
 }
 
