@@ -417,6 +417,8 @@ function showFinal(final) {
 }
 
 let currentHiscoresSort = "accuracy";
+const HISCORES_PAGE_SIZE = 20;
+let currentHiscoresLimit = HISCORES_PAGE_SIZE;
 
 function formatDuration(seconds) {
   const total = Math.round(seconds);
@@ -477,14 +479,34 @@ function renderHiscores(rows) {
   });
 }
 
+async function fetchAndRenderHiscores() {
+  const { rows } = await api(
+    `/api/hiscores?sort=${currentHiscoresSort}&limit=${currentHiscoresLimit}`,
+    null,
+    "GET",
+  );
+  renderHiscores(rows);
+  // If we got back fewer rows than we asked for, we've hit the end.
+  el("hiscores-more-btn").hidden = rows.length < currentHiscoresLimit;
+}
+
 async function openHiscores(sort) {
   currentHiscoresSort = sort;
+  currentHiscoresLimit = HISCORES_PAGE_SIZE;
   el("sort-accuracy-btn").classList.toggle("active", sort === "accuracy");
   el("sort-score-btn").classList.toggle("active", sort === "score");
   el("hiscores-modal").hidden = false;
   try {
-    const { rows } = await api(`/api/hiscores?sort=${sort}&limit=20`, null, "GET");
-    renderHiscores(rows);
+    await fetchAndRenderHiscores();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function loadMoreHiscores() {
+  currentHiscoresLimit += HISCORES_PAGE_SIZE;
+  try {
+    await fetchAndRenderHiscores();
   } catch (e) {
     alert(e.message);
   }
@@ -675,6 +697,7 @@ el("hiscores-close-btn").onclick = () => {
 };
 el("sort-accuracy-btn").onclick = () => openHiscores("accuracy");
 el("sort-score-btn").onclick = () => openHiscores("score");
+el("hiscores-more-btn").onclick = loadMoreHiscores;
 
 // The tooltip's position is computed once on hover; if the modal scrolls
 // underneath it, just hide it rather than let it float in the wrong spot.

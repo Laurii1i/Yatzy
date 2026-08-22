@@ -449,7 +449,11 @@ table.scorecard tr.grand-total-row td {
 
 .hiscores-table-wrap {
   overflow-x: auto;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
+}
+
+.hiscores-more-btn {
+  margin-bottom: 12px;
 }
 
 table.hiscores-table {

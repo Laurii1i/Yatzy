@@ -72,7 +72,7 @@ def new_game(req: NewGameRequest):
 def hiscores(sort: str = "accuracy", limit: int = 20):
     if sort not in HISCORES_SORTS:
         raise HTTPException(status_code=400, detail=f"sort must be one of {sorted(HISCORES_SORTS)}")
-    limit = max(1, min(limit, 100))
+    limit = max(1, min(limit, 500))
     return {"rows": db.fetch_hiscores(sort, limit)}
 
 
