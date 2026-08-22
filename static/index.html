@@ -11,6 +11,7 @@
     <div class="topbar-actions">
       <button id="hiscores-btn" class="gold">Hiscores</button>
       <button id="new-game-btn">New Game</button>
+      <button id="analysis-btn" class="ghost">Game Analysis</button>
     </div>
   </header>
 
@@ -127,6 +128,67 @@
       </div>
       <button id="hiscores-more-btn" class="ghost hiscores-more-btn" hidden>Show More</button>
       <button id="hiscores-close-btn" class="ghost">Close</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="analysis-modal" hidden>
+    <div class="modal modal-wide modal-scroll">
+      <h2>Game Analysis</h2>
+      <p class="analysis-intro">
+        Set up any scorecard, upper points, dice, and rerolls left, then analyze the best move for it.
+      </p>
+
+      <table class="scorecard analysis-scorecard" id="analysis-scorecard">
+        <colgroup>
+          <col />
+          <col style="width: 90px" />
+        </colgroup>
+        <tbody id="analysis-scorecard-upper"></tbody>
+        <tbody id="analysis-scorecard-lower"></tbody>
+      </table>
+
+      <div class="analysis-setup">
+        <div class="analysis-field">
+          <span class="analysis-field-label">Upper Points</span>
+          <input id="analysis-u-input" type="text" inputmode="numeric" maxlength="2" value="0" />
+        </div>
+        <div class="analysis-field">
+          <span class="analysis-field-label">Rerolls Left</span>
+          <div class="stepper">
+            <button id="analysis-rerolls-minus" class="ghost">−</button>
+            <span id="analysis-rerolls-value">2</span>
+            <button id="analysis-rerolls-plus" class="ghost">+</button>
+          </div>
+        </div>
+        <div class="analysis-field analysis-dice-field">
+          <span class="analysis-field-label">Current Dice</span>
+          <div class="analysis-dice-box">
+            <div class="dice-row" id="analysis-dice-display"></div>
+            <button id="analysis-set-dice-btn" class="ghost">Set Dice</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="analysis-run-btn">Analyze</button>
+
+      <div id="analysis-results">
+        <h3 id="analysis-results-heading"></h3>
+        <div class="analysis-results-list" id="analysis-results-list"></div>
+      </div>
+
+      <button id="analysis-close-btn" class="ghost">Close</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="set-dice-modal" hidden>
+    <div class="modal">
+      <h2>Set Dice</h2>
+      <div id="set-dice-rows"></div>
+      <div id="set-dice-total"></div>
+      <div class="final-actions">
+        <button id="set-dice-cancel-btn" class="ghost">Cancel</button>
+        <button id="set-dice-confirm-btn">Confirm</button>
+      </div>
     </div>
   </div>
 

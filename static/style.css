@@ -681,3 +681,188 @@ table.breakdown-table td {
   gap: 10px;
   justify-content: center;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Game Analysis: standalone what-if sandbox                               */
+/* ---------------------------------------------------------------------- */
+
+.analysis-intro {
+  font-size: 0.85rem;
+  margin-top: -4px;
+}
+
+.analysis-scorecard {
+  margin-bottom: 18px;
+}
+
+.analysis-scorecard tr {
+  cursor: pointer;
+}
+
+.analysis-scorecard tr:hover td {
+  background: var(--bg);
+}
+
+.analysis-scorecard tr.closed {
+  background: #e9eaee;
+  color: var(--muted);
+}
+.analysis-scorecard tr.closed:hover td {
+  background: #e2e3e8;
+}
+.analysis-scorecard tr.closed .mini-die {
+  border-color: var(--muted);
+}
+.analysis-scorecard tr.closed .mini-die .pip {
+  background: var(--muted);
+}
+
+.analysis-status {
+  text-align: right;
+  font-weight: 600;
+}
+
+.analysis-setup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  align-items: flex-end;
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.analysis-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.analysis-field-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+#analysis-u-input {
+  width: 64px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  padding: 9px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepper button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stepper span {
+  min-width: 1.2em;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-dice-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#analysis-dice-display {
+  gap: 6px;
+}
+#analysis-dice-display .die {
+  width: 40px;
+  height: 40px;
+  padding: 6px;
+  cursor: default;
+}
+#analysis-dice-display .die .pip {
+  width: 6px;
+  height: 6px;
+}
+
+#analysis-run-btn {
+  display: block;
+  margin: 0 auto 20px;
+  padding: 11px 28px;
+  font-weight: 600;
+}
+
+#analysis-results h3 {
+  font-size: 1rem;
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.analysis-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.analysis-result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.analysis-result-row.best {
+  background: var(--good-soft);
+}
+
+.analysis-result-icon {
+  display: flex;
+  align-items: center;
+}
+
+.analysis-result-loss {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--bad);
+}
+
+.analysis-result-row.best .analysis-result-loss {
+  color: var(--good);
+}
+
+#set-dice-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.set-dice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+#set-dice-total {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}

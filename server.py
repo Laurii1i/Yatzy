@@ -7,7 +7,7 @@ Run:  uvicorn server:app --reload --port 8000
 Then open http://127.0.0.1:8000/
 """
 import logging
-from typing import List
+from typing import Dict, List
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -24,6 +24,7 @@ CATEGORY_NAME_TO_COL = {name: i for i, name in enumerate(ge.CATEGORY_NAMES)}
 
 MAX_NICKNAME_LEN = 32
 HISCORES_SORTS = {"accuracy", "score"}
+ANALYZE_TOP_N_HOLDS = 10
 
 
 @app.on_event("startup")
@@ -47,6 +48,13 @@ class HoldRequest(BaseModel):
 class FillRequest(BaseModel):
     session_id: str
     category: str
+
+
+class AnalyzeRequest(BaseModel):
+    open_categories: Dict[str, bool]  # must include all 15 CATEGORY_NAMES as keys
+    u: int
+    dice: List[int]  # exactly 5 values, 1-6
+    rerolls_remaining: int  # 0, 1, or 2
 
 
 def _session_or_404(session_id: str) -> ge.Session:
@@ -182,6 +190,33 @@ def fill(req: FillRequest):
 
     response["state"] = s.public_state()
     return response
+
+
+@app.post("/api/analyze")
+def analyze(req: AnalyzeRequest):
+    """Stateless what-if analysis: rank the best moves for an arbitrary,
+    user-described board (no session_id -- never reads or writes SESSIONS).
+    Kept deliberately disconnected from live gameplay, see game_engine's
+    rank_holds/rank_fills/analyze_holds/analyze_fills docstrings."""
+    if set(req.open_categories) != set(ge.CATEGORY_NAMES):
+        raise HTTPException(status_code=400, detail="open_categories must include exactly the 15 category names")
+    open_flags = [int(bool(req.open_categories[name])) for name in ge.CATEGORY_NAMES]
+    if not any(open_flags):
+        raise HTTPException(status_code=400, detail="at least one category must be open")
+    if not (0 <= req.u <= 63):
+        raise HTTPException(status_code=400, detail="u must be between 0 and 63")
+    if len(req.dice) != 5 or any(f < 1 or f > 6 for f in req.dice):
+        raise HTTPException(status_code=400, detail="dice must be exactly 5 values between 1 and 6")
+    if req.rerolls_remaining not in (0, 1, 2):
+        raise HTTPException(status_code=400, detail="rerolls_remaining must be 0, 1, or 2")
+
+    idx = ge.GAME_STATE_TO_IDX[tuple(open_flags)]
+    state = ge.solve_state(idx)
+    if req.rerolls_remaining in (1, 2):
+        results = ge.analyze_holds(state, req.dice, req.u, req.rerolls_remaining, top_n=ANALYZE_TOP_N_HOLDS)
+        return {"mode": "holds", "results": results}
+    results = ge.analyze_fills(state, req.dice, req.u, top_n=None)
+    return {"mode": "fills", "results": results}
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

@@ -674,10 +674,210 @@ function renderScorecard() {
   footerBody.appendChild(summaryRow("Total", session.total, "grand-total-row"));
 }
 
+// ---------------------------------------------------------------------------
+// Game Analysis: a standalone what-if sandbox, fully decoupled from the live
+// game session -- stateless backend (POST /api/analyze takes no session_id),
+// starts blank every time, never reads or writes `session`. The one place it
+// *does* look at `session` is to disable its own entry point while a game is
+// in progress (see updateAnalysisButtonState) -- a deliberate deterrent
+// against using it to look up the live game's answer, not a security
+// boundary: a second tab could always describe the same board by hand.
+// ---------------------------------------------------------------------------
+let analysisOpen = {};
+let analysisU = 0;
+let analysisRerolls = 2;
+let analysisDice = [1, 1, 1, 1, 1];
+let analysisDraftCounts = [0, 0, 0, 0, 0, 0];
+
+function updateAnalysisButtonState() {
+  const blocked = !!(session && !session.game_over);
+  const btn = el("analysis-btn");
+  btn.disabled = blocked;
+  btn.title = blocked
+    ? "Finish or start a new game first — Game Analysis is disabled during an active game."
+    : "";
+}
+
+function openAnalysis() {
+  analysisOpen = {};
+  CATEGORY_ORDER.forEach((cat) => {
+    analysisOpen[cat] = true;
+  });
+  analysisU = 0;
+  analysisRerolls = 2;
+  analysisDice = [1, 1, 1, 1, 1];
+  el("analysis-u-input").value = "0";
+  el("analysis-rerolls-value").textContent = "2";
+  renderAnalysisScorecard();
+  renderAnalysisDice();
+  el("analysis-results-heading").textContent = "";
+  el("analysis-results-list").innerHTML = "";
+  el("analysis-modal").hidden = false;
+}
+
+function toggleAnalysisCategory(cat) {
+  analysisOpen[cat] = !analysisOpen[cat];
+  renderAnalysisScorecard();
+}
+
+function renderAnalysisScorecard() {
+  const upperBody = el("analysis-scorecard-upper");
+  const lowerBody = el("analysis-scorecard-lower");
+  upperBody.innerHTML = "";
+  lowerBody.innerHTML = "";
+
+  CATEGORY_ORDER.forEach((cat) => {
+    const tr = document.createElement("tr");
+    tr.classList.toggle("closed", !analysisOpen[cat]);
+    tr.onclick = () => toggleAnalysisCategory(cat);
+
+    const nameTd = document.createElement("td");
+    nameTd.className = "cat-name";
+    nameTd.appendChild(buildCategoryIcon(cat));
+
+    const statusTd = document.createElement("td");
+    statusTd.className = "analysis-status";
+    statusTd.textContent = analysisOpen[cat] ? "Open" : "Closed";
+
+    tr.append(nameTd, statusTd);
+    (UPPER_CATEGORIES.has(cat) ? upperBody : lowerBody).appendChild(tr);
+  });
+}
+
+function renderAnalysisDice() {
+  const row = el("analysis-dice-display");
+  row.innerHTML = "";
+  analysisDice.forEach((face) => {
+    const d = document.createElement("div");
+    d.className = "die";
+    setDieFace(d, face);
+    row.appendChild(d);
+  });
+}
+
+function adjustAnalysisRerolls(delta) {
+  analysisRerolls = Math.max(0, Math.min(2, analysisRerolls + delta));
+  el("analysis-rerolls-value").textContent = analysisRerolls;
+}
+
+function commitAnalysisU(rewriteDisplay) {
+  const input = el("analysis-u-input");
+  let n = parseInt(input.value, 10);
+  if (isNaN(n)) n = 0;
+  n = Math.max(0, Math.min(63, n));
+  analysisU = n;
+  if (rewriteDisplay) input.value = String(n);
+}
+
+function openSetDicePopup() {
+  analysisDraftCounts = [0, 0, 0, 0, 0, 0];
+  analysisDice.forEach((face) => {
+    analysisDraftCounts[face - 1]++;
+  });
+  renderSetDiceRows();
+  el("set-dice-modal").hidden = false;
+}
+
+function adjustSetDiceCount(faceIdx, delta) {
+  analysisDraftCounts[faceIdx] = Math.max(0, analysisDraftCounts[faceIdx] + delta);
+  renderSetDiceRows();
+}
+
+function setDiceTotal() {
+  return analysisDraftCounts.reduce((a, b) => a + b, 0);
+}
+
+function renderSetDiceRows() {
+  const container = el("set-dice-rows");
+  container.innerHTML = "";
+  for (let faceIdx = 0; faceIdx < 6; faceIdx++) {
+    const row = document.createElement("div");
+    row.className = "set-dice-row";
+    row.appendChild(buildMiniDie(faceIdx + 1));
+
+    const stepper = document.createElement("div");
+    stepper.className = "stepper";
+    const minus = document.createElement("button");
+    minus.className = "ghost";
+    minus.textContent = "−";
+    minus.onclick = () => adjustSetDiceCount(faceIdx, -1);
+    const countSpan = document.createElement("span");
+    countSpan.textContent = analysisDraftCounts[faceIdx];
+    const plus = document.createElement("button");
+    plus.className = "ghost";
+    plus.textContent = "+";
+    plus.onclick = () => adjustSetDiceCount(faceIdx, 1);
+    stepper.append(minus, countSpan, plus);
+    row.appendChild(stepper);
+
+    container.appendChild(row);
+  }
+  updateSetDiceState();
+}
+
+function updateSetDiceState() {
+  const total = setDiceTotal();
+  el("set-dice-total").textContent = `Total: ${total}/5`;
+  el("set-dice-confirm-btn").disabled = total !== 5;
+}
+
+function confirmSetDice() {
+  analysisDice = analysisDraftCounts.flatMap((c, i) => Array(c).fill(i + 1));
+  renderAnalysisDice();
+  el("set-dice-modal").hidden = true;
+}
+
+function cancelSetDice() {
+  el("set-dice-modal").hidden = true;
+}
+
+function buildAnalysisRow(iconEl, scoreLoss, isBest) {
+  const row = document.createElement("div");
+  row.className = "analysis-result-row" + (isBest ? " best" : "");
+  const iconWrap = document.createElement("div");
+  iconWrap.className = "analysis-result-icon";
+  iconWrap.appendChild(iconEl);
+  const lossSpan = document.createElement("span");
+  lossSpan.className = "analysis-result-loss";
+  lossSpan.textContent = formatScoreLoss(scoreLoss);
+  row.append(iconWrap, lossSpan);
+  return row;
+}
+
+function renderAnalysisResults(mode, results) {
+  el("analysis-results-heading").textContent =
+    mode === "holds" ? "Top 10 Holds by EV" : "All Open Categories by EV";
+  const list = el("analysis-results-list");
+  list.innerHTML = "";
+  results.forEach((entry, i) => {
+    const iconEl = mode === "holds" ? buildHoldIcon(entry.dice) : buildCategoryIcon(entry.category);
+    list.appendChild(buildAnalysisRow(iconEl, entry.score_loss, i === 0));
+  });
+}
+
+async function runAnalysis() {
+  const open_categories = {};
+  CATEGORY_ORDER.forEach((cat) => {
+    open_categories[cat] = !!analysisOpen[cat];
+  });
+  try {
+    const { mode, results } = await api("/api/analyze", {
+      open_categories,
+      u: analysisU,
+      dice: analysisDice,
+      rerolls_remaining: analysisRerolls,
+    });
+    renderAnalysisResults(mode, results);
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
 function render() {
   renderStats();
   renderDice();
   renderScorecard();
+  updateAnalysisButtonState();
 }
 
 el("new-game-btn").onclick = newGame;
@@ -702,6 +902,23 @@ el("hiscores-close-btn").onclick = () => {
 el("sort-accuracy-btn").onclick = () => openHiscores("accuracy");
 el("sort-score-btn").onclick = () => openHiscores("score");
 el("hiscores-more-btn").onclick = loadMoreHiscores;
+
+el("analysis-btn").onclick = openAnalysis;
+el("analysis-close-btn").onclick = () => {
+  el("analysis-modal").hidden = true;
+};
+el("analysis-run-btn").onclick = runAnalysis;
+el("analysis-rerolls-minus").onclick = () => adjustAnalysisRerolls(-1);
+el("analysis-rerolls-plus").onclick = () => adjustAnalysisRerolls(1);
+el("analysis-u-input").oninput = () => {
+  const input = el("analysis-u-input");
+  input.value = input.value.replace(/\D/g, "").slice(0, 2);
+  commitAnalysisU(false);
+};
+el("analysis-u-input").onchange = () => commitAnalysisU(true);
+el("analysis-set-dice-btn").onclick = openSetDicePopup;
+el("set-dice-cancel-btn").onclick = cancelSetDice;
+el("set-dice-confirm-btn").onclick = confirmSetDice;
 
 // The tooltip's position is computed once on hover; if the modal scrolls
 // underneath it, just hide it rather than let it float in the wrong spot.

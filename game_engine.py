@@ -32,6 +32,11 @@ EMPTY_IDX = 0                                  # all categories closed
 OPTIMAL_EXPECTED_SCORE = float(GAME_STATE_V[FULL_OPEN_IDX, 0])
 
 HOLD_TO_IDX = {tuple(h): i for i, h in enumerate(HOLD_STATES)}
+# Reverse lookup for the Game Analysis tool: an open/closed vector (1=open,
+# per GAME_STATES' own convention) -> its GAME_STATES row. Keys are built
+# from plain Python ints so lookups never depend on numpy/Python int hashing
+# compatibility -- build query keys the same way (tuple(int(bool(v)) ...)).
+GAME_STATE_TO_IDX = {tuple(int(v) for v in row): i for i, row in enumerate(GAME_STATES)}
 POSSIBLE_HOLDS_BOOL = POSSIBLE_HOLDS.astype(bool)
 
 EV_TOLERANCE = 1e-6
@@ -165,6 +170,38 @@ def _top_n_holds(values, best_val, chosen_hold_idx, chosen_val):
     return top
 
 
+def rank_holds(values, best_val, top_n=None):
+    """Legal holds ranked by value, best first, as {dice, score_loss} --
+    no 'chosen' concept, for the stateless Game Analysis tool. Deliberately
+    kept separate from _top_n_holds (see game_engine module notes / project
+    plan): that function backs live-game judging and is left untouched to
+    avoid any risk of a control-flow change there. Keep the ranking math in
+    sync with _top_n_holds if either changes. top_n=None returns all legal
+    holds."""
+    order = np.argsort(-values)
+    if top_n is not None:
+        order = order[:top_n]
+    out = []
+    for hi in order:
+        hi = int(hi)
+        if values[hi] == -np.inf:
+            break  # ran out of legal holds
+        out.append({
+            "dice": hold_state_to_dice(hi),
+            "score_loss": max(0.0, best_val - float(values[hi])),
+        })
+    return out
+
+
+def analyze_holds(state: StateSolve, dice, u: int, rerolls_remaining: int, top_n=10):
+    d_idx = dice_to_dice_idx(dice)
+    H = state.H2 if rerolls_remaining == 2 else state.H1
+    legal_mask = POSSIBLE_HOLDS_BOOL[d_idx]
+    values = np.where(legal_mask, H[:, u], -np.inf)
+    best_val = float(values.max())
+    return rank_holds(values, best_val, top_n=top_n)
+
+
 def _dice_counts_partial(dice_subset):
     counts = [0] * 6
     for f in dice_subset:
@@ -237,6 +274,33 @@ def _top_n_fills(state: StateSolve, d_idx, u, best_val, chosen_col, chosen_val):
             "is_chosen": True,
         })
     return top
+
+
+def rank_fills(state: StateSolve, d_idx, u, best_val, top_n=None):
+    """Open categories ranked by value, best first, as {category,
+    score_loss} -- no 'chosen' concept, for the stateless Game Analysis
+    tool. Deliberately kept separate from _top_n_fills (see game_engine
+    module notes / project plan) -- keep the ranking math in sync with
+    _top_n_fills if either changes. top_n=None returns all open categories."""
+    cand_vals = state.cand[d_idx, u, :]
+    order = np.argsort(-cand_vals)
+    if top_n is not None:
+        order = order[:top_n]
+    out = []
+    for oi in order:
+        oi = int(oi)
+        col = int(state.open_cols[oi])
+        out.append({
+            "category": CATEGORY_NAMES[col],
+            "score_loss": max(0.0, best_val - float(cand_vals[oi])),
+        })
+    return out
+
+
+def analyze_fills(state: StateSolve, dice, u, top_n=None):
+    d_idx = dice_to_dice_idx(dice)
+    best_val = float(state.final_Vs[d_idx, u])
+    return rank_fills(state, d_idx, u, best_val, top_n=top_n)
 
 
 # ---------------------------------------------------------------------------
