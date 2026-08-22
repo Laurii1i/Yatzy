@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>So you think you can play Yatzee?</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>So you think you can play Yatzee?</h1>
+    <button id="new-game-btn">New Game</button>
+  </header>
+
+  <main id="app">
+    <div class="accuracy-display" id="accuracy-display">
+      <span class="accuracy-label">Accuracy</span>
+      <span class="accuracy-value" id="stat-accuracy">NaN</span>
+    </div>
+
+    <div class="game-card">
+      <section class="panel scorecard-panel">
+        <table class="scorecard" id="scorecard">
+          <colgroup>
+            <col />
+            <col style="width: 80px" />
+            <col style="width: 100px" />
+          </colgroup>
+          <tbody id="scorecard-upper"></tbody>
+          <tbody id="scorecard-upper-summary"></tbody>
+          <tbody id="scorecard-lower"></tbody>
+          <tbody id="scorecard-footer"></tbody>
+        </table>
+      </section>
+
+      <section class="panel dice-panel" id="dice-panel">
+        <h2 id="rerolls-label"></h2>
+        <div class="dice-row-wrap">
+          <div class="dice-row" id="dice-row"></div>
+          <div class="dice-feedback" id="dice-feedback"></div>
+        </div>
+        <div class="dice-controls">
+          <button id="roll-btn">Roll</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="final-modal" hidden>
+    <div class="modal">
+      <h2>Game Over</h2>
+      <p id="final-text"></p>
+      <button id="final-new-game-btn">Play Again</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
