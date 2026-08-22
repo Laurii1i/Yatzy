@@ -298,10 +298,91 @@ function popRowBadge(cat, text, kind) {
   }, FEEDBACK_POP_MS);
 }
 
+function formatScoreLoss(loss) {
+  return loss < 0.005 ? "Best" : `−${loss.toFixed(2)}`;
+}
+
+function buildTooltipRow(iconEl, scoreLoss, isChosen) {
+  const row = document.createElement("div");
+  row.className = "tooltip-row" + (isChosen ? " chosen" : "");
+  const iconWrap = document.createElement("div");
+  iconWrap.className = "tooltip-icon";
+  iconWrap.appendChild(iconEl);
+  const lossSpan = document.createElement("span");
+  lossSpan.className = "tooltip-loss";
+  lossSpan.textContent = formatScoreLoss(scoreLoss);
+  row.append(iconWrap, lossSpan);
+  if (isChosen) {
+    const tag = document.createElement("span");
+    tag.className = "tooltip-tag";
+    tag.textContent = "Your pick";
+    row.appendChild(tag);
+  }
+  return row;
+}
+
+function buildHoldIcon(dice) {
+  const wrap = document.createElement("div");
+  wrap.className = "dice-icon-group";
+  if (dice.length === 0) {
+    const span = document.createElement("span");
+    span.className = "tooltip-empty-hold";
+    span.textContent = "Reroll all";
+    wrap.appendChild(span);
+  } else {
+    dice.forEach((face) => wrap.appendChild(buildMiniDie(face)));
+  }
+  return wrap;
+}
+
+function buildCellTooltip(entries, iconBuilder) {
+  const wrap = document.createElement("div");
+  wrap.className = "cell-tooltip";
+  entries.forEach((entry) => {
+    wrap.appendChild(buildTooltipRow(iconBuilder(entry), entry.score_loss, entry.is_chosen));
+  });
+  return wrap;
+}
+
+function buildBreakdownCell(entry, topList, iconBuilder) {
+  const td = document.createElement("td");
+  td.className = "breakdown-cell";
+  const inner = document.createElement("div");
+  inner.className = "breakdown-cell-inner";
+  const marker = document.createElement("span");
+  marker.className = "marker " + (entry.optimal ? "marker-good" : "marker-bad");
+  marker.textContent = entry.optimal ? "✓" : "✗";
+  inner.appendChild(marker);
+  inner.appendChild(buildCellTooltip(topList, iconBuilder));
+  td.appendChild(inner);
+  return td;
+}
+
+function renderBreakdownTable(history) {
+  const body = el("breakdown-body");
+  body.innerHTML = "";
+  history.forEach((turn) => {
+    const tr = document.createElement("tr");
+    const roundTd = document.createElement("td");
+    roundTd.className = "breakdown-round";
+    roundTd.textContent = turn.turn;
+    tr.appendChild(roundTd);
+    tr.appendChild(buildBreakdownCell(turn.hold1, turn.hold1.top_holds, (h) => buildHoldIcon(h.dice)));
+    tr.appendChild(buildBreakdownCell(turn.hold2, turn.hold2.top_holds, (h) => buildHoldIcon(h.dice)));
+    tr.appendChild(buildBreakdownCell(turn.fill, turn.fill.top_fills, (f) => buildCategoryIcon(f.category)));
+    body.appendChild(tr);
+  });
+}
+
 function showFinal(final) {
   el("final-modal").hidden = false;
-  el("final-text").textContent =
-    `Final score: ${final.score}. Accuracy: ${(session.accuracy * 100).toFixed(1)}%.`;
+  let text = `Final score: ${final.score}. Accuracy: ${(session.accuracy * 100).toFixed(1)}%.`;
+  if (final.ranks) {
+    text += ` Ranked #${final.ranks.accuracy_rank} of ${final.ranks.total_games} by accuracy` +
+      ` (#${final.ranks.score_rank} by score).`;
+  }
+  el("final-text").textContent = text;
+  renderBreakdownTable(final.history);
 }
 
 let currentHiscoresSort = "accuracy";
@@ -333,20 +414,34 @@ function renderHiscores(rows) {
     return;
   }
   rows.forEach((row, i) => {
+    const rank = i + 1;
     const tr = document.createElement("tr");
-    const cells = [
-      i + 1,
-      row.nickname,
-      row.total_score,
-      `${(row.accuracy * 100).toFixed(1)}% (${row.moves_optimal}/${row.moves_total})`,
-      formatDuration(row.completion_seconds),
-      formatDate(row.played_at),
-    ];
-    cells.forEach((value) => {
-      const td = document.createElement("td");
-      td.textContent = value;
-      tr.appendChild(td);
-    });
+    if (rank <= 3) tr.classList.add(`rank-${rank}`);
+
+    const rankTd = document.createElement("td");
+    rankTd.className = "hiscores-rank";
+    rankTd.textContent = rank;
+
+    const nameTd = document.createElement("td");
+    nameTd.textContent = row.nickname;
+
+    const scoreTd = document.createElement("td");
+    scoreTd.className = "hiscores-score";
+    scoreTd.textContent = row.total_score;
+
+    const pct = row.accuracy * 100;
+    const accTd = document.createElement("td");
+    accTd.className = "hiscores-accuracy";
+    accTd.textContent = `${pct.toFixed(1)}%`;
+    accTd.style.color = accuracyColor(pct);
+
+    const timeTd = document.createElement("td");
+    timeTd.textContent = formatDuration(row.completion_seconds);
+
+    const dateTd = document.createElement("td");
+    dateTd.textContent = formatDate(row.played_at);
+
+    tr.append(rankTd, nameTd, scoreTd, accTd, timeTd, dateTd);
     body.appendChild(tr);
   });
 }
@@ -540,6 +635,10 @@ el("nickname-form").onsubmit = (e) => {
 };
 
 el("hiscores-btn").onclick = () => openHiscores(currentHiscoresSort);
+el("final-hiscores-btn").onclick = () => {
+  el("final-modal").hidden = true;
+  openHiscores(currentHiscoresSort);
+};
 el("hiscores-close-btn").onclick = () => {
   el("hiscores-modal").hidden = true;
 };

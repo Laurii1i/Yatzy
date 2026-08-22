@@ -51,6 +51,8 @@ def init_db():
 
 
 def insert_game(nickname, total_score, accuracy, moves_optimal, moves_total, completion_seconds):
+    """Inserts the row and returns this game's rank on both leaderboards,
+    computed in the same round-trip so the numbers are self-consistent."""
     conn = _pool.getconn()
     try:
         with conn, conn.cursor() as cur:
@@ -62,8 +64,25 @@ def insert_game(nickname, total_score, accuracy, moves_optimal, moves_total, com
                 """,
                 (nickname, total_score, accuracy, moves_optimal, moves_total, completion_seconds),
             )
+            cur.execute(
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM games
+                     WHERE accuracy > %s OR (accuracy = %s AND completion_seconds < %s)) + 1,
+                    (SELECT COUNT(*) FROM games WHERE total_score > %s) + 1,
+                    (SELECT COUNT(*) FROM games)
+                """,
+                (accuracy, accuracy, completion_seconds, total_score),
+            )
+            accuracy_rank, score_rank, total_games = cur.fetchone()
     finally:
         _pool.putconn(conn)
+
+    return {
+        "accuracy_rank": accuracy_rank,
+        "score_rank": score_rank,
+        "total_games": total_games,
+    }
 
 
 def fetch_hiscores(sort: str, limit: int):

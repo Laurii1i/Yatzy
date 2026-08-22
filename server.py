@@ -114,6 +114,13 @@ def hold(req: HoldRequest):
     result = ge.judge_hold(state, s.dice, s.u, s.rerolls_remaining, req.keep_indices)
     s.record_move(result["ev_cost"], result["optimal"])
 
+    slot = "hold1" if s.rerolls_remaining == 2 else "hold2"
+    s.current_turn_record()[slot] = {
+        "optimal": result["optimal"],
+        "chosen_dice": result["chosen_hold_dice"],
+        "top_holds": result["top_holds"],
+    }
+
     kept = [s.dice[i] for i in req.keep_indices]
     n_reroll = 5 - len(kept)
     s.dice = sorted(kept + ge.roll_dice(n_reroll))
@@ -140,6 +147,12 @@ def fill(req: FillRequest):
     result = ge.judge_fill(state, s.dice, s.u, category_col)
     s.record_move(result["ev_cost"], result["optimal"])
 
+    s.current_turn_record()["fill"] = {
+        "optimal": result["optimal"],
+        "chosen_category": req.category,
+        "top_fills": result["top_fills"],
+    }
+
     s.total += result["gain"] + result["bonus"]
     s.u = result["new_u"]
     s.idx = result["new_idx"]
@@ -152,13 +165,16 @@ def fill(req: FillRequest):
         response["final"] = {
             "score": s.total,
             "optimal_expected_score": ge.OPTIMAL_EXPECTED_SCORE,
+            "history": s.history,
         }
         # A hiscores write failing must never break the player's game-over
-        # response -- log and move on.
+        # response -- log and move on. If it succeeds, attach this game's
+        # rank so the frontend can show it immediately.
         try:
-            db.insert_game(
+            ranks = db.insert_game(
                 s.nickname, s.total, s.accuracy(), s.moves_optimal, s.moves_total, s.elapsed_seconds()
             )
+            response["final"]["ranks"] = ranks
         except Exception:
             logger.exception("failed to record hiscore for session %s", s.session_id)
     else:

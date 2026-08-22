@@ -105,6 +105,9 @@ def solve_state(idx: int) -> StateSolve:
     )
 
 
+TOP_N = 5
+
+
 def judge_hold(state: StateSolve, dice, u: int, rerolls_remaining: int, keep_indices):
     """rerolls_remaining is the count BEFORE this hold decision (2 or 1)."""
     d_idx = dice_to_dice_idx(dice)
@@ -122,6 +125,8 @@ def judge_hold(state: StateSolve, dice, u: int, rerolls_remaining: int, keep_ind
     ev_cost = max(0.0, best_val - chosen_val)
     optimal = ev_cost <= EV_TOLERANCE
 
+    top_holds = _top_n_holds(values, best_val, chosen_hold_idx, chosen_val)
+
     return {
         "chosen_ev": chosen_val,
         "optimal_ev": best_val,
@@ -129,7 +134,35 @@ def judge_hold(state: StateSolve, dice, u: int, rerolls_remaining: int, keep_ind
         "optimal": optimal,
         "optimal_hold_dice": hold_state_to_dice(best_hold_idx),
         "chosen_hold_dice": sorted(kept),
+        "top_holds": top_holds,
     }
+
+
+def _top_n_holds(values, best_val, chosen_hold_idx, chosen_val):
+    """Top TOP_N legal holds by value, each with dice/score_loss/is_chosen.
+    The chosen hold is always present, appended at the end if it didn't
+    already make the top N on its own merit."""
+    order = np.argsort(-values)[:TOP_N]
+    top = []
+    chosen_included = False
+    for hi in order:
+        hi = int(hi)
+        if values[hi] == -np.inf:
+            break  # ran out of legal holds (fewer than TOP_N were legal)
+        is_chosen = hi == chosen_hold_idx
+        chosen_included = chosen_included or is_chosen
+        top.append({
+            "dice": hold_state_to_dice(hi),
+            "score_loss": max(0.0, best_val - float(values[hi])),
+            "is_chosen": is_chosen,
+        })
+    if not chosen_included:
+        top.append({
+            "dice": hold_state_to_dice(chosen_hold_idx),
+            "score_loss": max(0.0, best_val - chosen_val),
+            "is_chosen": True,
+        })
+    return top
 
 
 def _dice_counts_partial(dice_subset):
@@ -164,6 +197,8 @@ def judge_fill(state: StateSolve, dice, u: int, category_col: int):
 
     new_idx = int(state.transitions[i])
 
+    top_fills = _top_n_fills(state, d_idx, u, best_val, category_col, chosen_val)
+
     return {
         "chosen_ev": chosen_val,
         "optimal_ev": best_val,
@@ -174,7 +209,34 @@ def judge_fill(state: StateSolve, dice, u: int, category_col: int):
         "bonus": bonus,
         "new_u": new_u,
         "new_idx": new_idx,
+        "top_fills": top_fills,
     }
+
+
+def _top_n_fills(state: StateSolve, d_idx, u, best_val, chosen_col, chosen_val):
+    """Top TOP_N open categories by value, each with category/score_loss/
+    is_chosen. The chosen category is always present."""
+    cand_vals = state.cand[d_idx, u, :]
+    order = np.argsort(-cand_vals)[:TOP_N]
+    top = []
+    chosen_included = False
+    for oi in order:
+        oi = int(oi)
+        col = int(state.open_cols[oi])
+        is_chosen = col == chosen_col
+        chosen_included = chosen_included or is_chosen
+        top.append({
+            "category": CATEGORY_NAMES[col],
+            "score_loss": max(0.0, best_val - float(cand_vals[oi])),
+            "is_chosen": is_chosen,
+        })
+    if not chosen_included:
+        top.append({
+            "category": CATEGORY_NAMES[chosen_col],
+            "score_loss": max(0.0, best_val - chosen_val),
+            "is_chosen": True,
+        })
+    return top
 
 
 # ---------------------------------------------------------------------------
@@ -196,6 +258,7 @@ class Session:
     ev_lost_total: float = 0.0
     filled: dict = field(default_factory=dict)  # category name -> points scored there
     started_at: Optional[float] = None  # time.monotonic() at the first roll of turn 1
+    history: list = field(default_factory=list)  # one {turn, hold1, hold2, fill} dict per turn
 
     def start_turn(self):
         """Reset for a new turn, awaiting an explicit first roll (dice stays
@@ -220,6 +283,16 @@ class Session:
         self.ev_lost_total += ev_cost
         if optimal:
             self.moves_optimal += 1
+
+    def current_turn_record(self):
+        """The in-progress history entry for the current turn, creating it
+        on first touch (the first hold decision of the turn)."""
+        for t in self.history:
+            if t["turn"] == self.turn:
+                return t
+        t = {"turn": self.turn, "hold1": None, "hold2": None, "fill": None}
+        self.history.append(t)
+        return t
 
     def open_categories(self):
         return [CATEGORY_NAMES[c] for c in np.flatnonzero(GAME_STATES[self.idx])]

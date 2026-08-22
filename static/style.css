@@ -374,6 +374,19 @@ table.scorecard tr.grand-total-row td {
   width: 100%;
 }
 
+.modal-scroll {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.nickname-intro {
+  text-align: left;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.88rem;
+}
+
 #nickname-form {
   display: flex;
   gap: 10px;
@@ -438,4 +451,194 @@ td.hiscores-empty {
   text-align: center;
   color: var(--muted);
   padding: 24px 10px;
+}
+
+.hiscores-rank {
+  font-weight: 700;
+  color: var(--muted);
+  width: 32px;
+}
+
+.hiscores-score {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.hiscores-accuracy {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+table.hiscores-table tr.rank-1 {
+  background: linear-gradient(90deg, #fff6d8, transparent);
+}
+table.hiscores-table tr.rank-1 .hiscores-rank {
+  color: #b8860a;
+}
+table.hiscores-table tr.rank-1 .hiscores-rank::before { content: "🥇 "; }
+
+table.hiscores-table tr.rank-2 {
+  background: linear-gradient(90deg, #eef1f5, transparent);
+}
+table.hiscores-table tr.rank-2 .hiscores-rank {
+  color: #7a8699;
+}
+table.hiscores-table tr.rank-2 .hiscores-rank::before { content: "🥈 "; }
+
+table.hiscores-table tr.rank-3 {
+  background: linear-gradient(90deg, #fbe8d9, transparent);
+}
+table.hiscores-table tr.rank-3 .hiscores-rank {
+  color: #b3651c;
+}
+table.hiscores-table tr.rank-3 .hiscores-rank::before { content: "🥉 "; }
+
+/* ---------------------------------------------------------------------- */
+/* Game-over move-by-move breakdown table                                  */
+/* ---------------------------------------------------------------------- */
+
+.breakdown-heading {
+  margin: 20px 0 4px;
+  font-size: 1rem;
+}
+
+.breakdown-hint {
+  font-size: 0.82rem;
+  margin: 0 0 12px;
+}
+
+.breakdown-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+table.breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+table.breakdown-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+table.breakdown-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 4px;
+}
+
+.breakdown-round {
+  text-align: center;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown-cell-inner {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 3px 0;
+}
+
+.marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: default;
+}
+
+.marker-good { background: var(--good-soft); color: var(--good); }
+.marker-bad { background: var(--bad-soft); color: var(--bad); }
+
+.cell-tooltip {
+  position: absolute;
+  z-index: 20;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  width: max-content;
+  max-width: 250px;
+  background: var(--text);
+  color: white;
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+  text-align: left;
+}
+
+.breakdown-cell-inner:hover .cell-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+}
+
+.tooltip-row.chosen {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.tooltip-icon {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* .mini-die's default white fill + dark pips already reads fine against
+   the tooltip's dark background -- no override needed. */
+
+.tooltip-empty-hold {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+}
+
+.tooltip-loss {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #ffd166;
+}
+
+.tooltip-row.chosen .tooltip-loss {
+  color: #9ee6a8;
+}
+
+.tooltip-tag {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+.final-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
 }

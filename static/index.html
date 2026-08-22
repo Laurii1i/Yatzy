@@ -50,17 +50,43 @@
   </main>
 
   <div class="modal-backdrop" id="final-modal" hidden>
-    <div class="modal">
+    <div class="modal modal-wide modal-scroll">
       <h2>Game Over</h2>
       <p id="final-text"></p>
-      <button id="final-new-game-btn">Play Again</button>
+      <h3 class="breakdown-heading">Move-by-move breakdown</h3>
+      <p class="breakdown-hint">Hover a cell to see the top options and what they'd have cost you.</p>
+      <div class="breakdown-table-wrap">
+        <table class="breakdown-table" id="breakdown-table">
+          <colgroup>
+            <col style="width: 64px" />
+            <col />
+            <col />
+            <col />
+          </colgroup>
+          <thead>
+            <tr><th>Round</th><th>Hold 1</th><th>Hold 2</th><th>Fill</th></tr>
+          </thead>
+          <tbody id="breakdown-body"></tbody>
+        </table>
+      </div>
+      <div class="final-actions">
+        <button id="final-hiscores-btn" class="ghost">View Hiscores</button>
+        <button id="final-new-game-btn">Play Again</button>
+      </div>
     </div>
   </div>
 
   <div class="modal-backdrop" id="nickname-modal">
     <div class="modal">
       <h2>What should we call you?</h2>
-      <p>Your nickname is used to record your games on the hiscores board.</p>
+      <p class="nickname-intro">
+        Scandinavian Yatzy's entire game state was solved exactly with dynamic
+        programming — every dice roll and every scorecard has a known optimal
+        move. This is a trainer built on that solution: play normally, and
+        after every hold and every fill you'll see whether you matched the
+        mathematically optimal play. Use it to sharpen your Yatzy intuition.
+      </p>
+      <p>Pick a nickname to record your games on the hiscores board.</p>
       <form id="nickname-form">
         <input id="nickname-input" type="text" maxlength="32" placeholder="Nickname" autocomplete="off" required />
         <button type="submit">Start Playing</button>
@@ -69,11 +95,11 @@
   </div>
 
   <div class="modal-backdrop" id="hiscores-modal" hidden>
-    <div class="modal modal-wide">
+    <div class="modal modal-wide modal-scroll">
       <h2>Hiscores</h2>
       <div class="hiscores-sort-toggle">
-        <button id="sort-accuracy-btn" class="ghost sort-btn active">By Accuracy</button>
-        <button id="sort-score-btn" class="ghost sort-btn">By Score</button>
+        <button id="sort-accuracy-btn" class="ghost sort-btn active">Accuracy</button>
+        <button id="sort-score-btn" class="ghost sort-btn">Score</button>
       </div>
       <div class="hiscores-table-wrap">
         <table class="hiscores-table" id="hiscores-table">
