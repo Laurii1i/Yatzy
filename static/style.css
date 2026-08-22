@@ -68,6 +68,13 @@ button.ghost {
   border: 1px solid var(--border);
 }
 
+button.gold {
+  background: linear-gradient(135deg, #f6c453, #dfa32a);
+  color: #4a3200;
+  box-shadow: 0 2px 8px rgba(223, 163, 42, 0.4);
+}
+button.gold:hover { filter: brightness(1.06); }
+
 #app {
   max-width: 760px;
   margin: 24px auto;
@@ -498,14 +505,34 @@ table.hiscores-table tr.rank-3 .hiscores-rank::before { content: "🥉 "; }
 /* Game-over move-by-move breakdown table                                  */
 /* ---------------------------------------------------------------------- */
 
-.breakdown-heading {
-  margin: 20px 0 4px;
-  font-size: 1rem;
+.final-summary {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin: 4px 0 20px;
+  flex-wrap: wrap;
 }
 
-.breakdown-hint {
-  font-size: 0.82rem;
-  margin: 0 0 12px;
+.final-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.final-stat-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.final-stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .breakdown-table-wrap {
@@ -524,13 +551,13 @@ table.breakdown-table th {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--muted);
-  padding: 6px 4px;
+  padding: 6px 2px;
   border-bottom: 1px solid var(--border);
 }
 
 table.breakdown-table td {
   border-bottom: 1px solid var(--border);
-  padding: 4px;
+  padding: 2px;
 }
 
 .breakdown-round {
@@ -541,51 +568,43 @@ table.breakdown-table td {
 }
 
 .breakdown-cell-inner {
-  position: relative;
   display: flex;
   justify-content: center;
-  padding: 3px 0;
+  padding: 2px 0;
 }
 
 .marker {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   cursor: default;
 }
 
 .marker-good { background: var(--good-soft); color: var(--good); }
 .marker-bad { background: var(--bad-soft); color: var(--bad); }
 
+/* Rendered as a single shared element appended to <body> (see index.html),
+   positioned in JS via getBoundingClientRect -- deliberately NOT nested
+   inside the scrollable modal, so it can never be clipped by the modal's
+   overflow (a real problem for the topmost table rows) and never inflates
+   the table wrapper's scrollable content box while hidden. */
 .cell-tooltip {
-  position: absolute;
-  z-index: 20;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 8px;
+  position: fixed;
+  z-index: 100;
   width: max-content;
   max-width: 250px;
   background: var(--text);
   color: white;
   border-radius: 10px;
   padding: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.12s ease;
-  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   text-align: left;
-}
-
-.breakdown-cell-inner:hover .cell-tooltip {
-  opacity: 1;
-  visibility: visible;
+  pointer-events: none;
 }
 
 .tooltip-row {
@@ -623,10 +642,6 @@ table.breakdown-table td {
   font-weight: 700;
   white-space: nowrap;
   color: #ffd166;
-}
-
-.tooltip-row.chosen .tooltip-loss {
-  color: #9ee6a8;
 }
 
 .tooltip-tag {

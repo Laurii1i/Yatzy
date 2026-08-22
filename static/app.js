@@ -335,13 +335,43 @@ function buildHoldIcon(dice) {
   return wrap;
 }
 
-function buildCellTooltip(entries, iconBuilder) {
-  const wrap = document.createElement("div");
-  wrap.className = "cell-tooltip";
+// The tooltip is a single shared element appended directly to <body> (see
+// index.html), positioned with `position: fixed` via getBoundingClientRect.
+// It deliberately does NOT live inside the scrollable modal: a tooltip
+// nested in a scrolling ancestor gets clipped by that ancestor's overflow
+// (real problem for the topmost table rows, which have no room above them
+// inside the modal) -- escaping the modal via a "portal" element sidesteps
+// that entirely, and also stops the (still-laid-out-when-hidden) tooltip
+// from inflating the table wrapper's scrollable content box every row.
+function showCellTooltip(anchorEl, entries, iconBuilder) {
+  const tip = el("cell-tooltip");
+  tip.innerHTML = "";
   entries.forEach((entry) => {
-    wrap.appendChild(buildTooltipRow(iconBuilder(entry), entry.score_loss, entry.is_chosen));
+    tip.appendChild(buildTooltipRow(iconBuilder(entry), entry.score_loss, entry.is_chosen));
   });
-  return wrap;
+  tip.hidden = false;
+
+  const rect = anchorEl.getBoundingClientRect();
+  const tipRect = tip.getBoundingClientRect();
+  // Bound the tooltip to the modal card itself, not just the viewport --
+  // otherwise it can visually poke out above/beside the popup even though
+  // it's technically still on-screen.
+  const modalEl = anchorEl.closest(".modal");
+  const bounds = modalEl
+    ? modalEl.getBoundingClientRect()
+    : { top: 0, bottom: window.innerHeight, left: 0, right: window.innerWidth };
+  const gap = 8;
+  let top = rect.top - tipRect.height - gap;
+  if (top < bounds.top + gap) top = rect.bottom + gap; // not enough room above -> flip below
+  let left = rect.left + rect.width / 2 - tipRect.width / 2;
+  left = Math.max(bounds.left + gap, Math.min(left, bounds.right - tipRect.width - gap));
+
+  tip.style.top = `${top}px`;
+  tip.style.left = `${left}px`;
+}
+
+function hideCellTooltip() {
+  el("cell-tooltip").hidden = true;
 }
 
 function buildBreakdownCell(entry, topList, iconBuilder) {
@@ -353,7 +383,8 @@ function buildBreakdownCell(entry, topList, iconBuilder) {
   marker.className = "marker " + (entry.optimal ? "marker-good" : "marker-bad");
   marker.textContent = entry.optimal ? "✓" : "✗";
   inner.appendChild(marker);
-  inner.appendChild(buildCellTooltip(topList, iconBuilder));
+  inner.addEventListener("mouseenter", () => showCellTooltip(inner, topList, iconBuilder));
+  inner.addEventListener("mouseleave", hideCellTooltip);
   td.appendChild(inner);
   return td;
 }
@@ -376,12 +407,11 @@ function renderBreakdownTable(history) {
 
 function showFinal(final) {
   el("final-modal").hidden = false;
-  let text = `Final score: ${final.score}. Accuracy: ${(session.accuracy * 100).toFixed(1)}%.`;
-  if (final.ranks) {
-    text += ` Ranked #${final.ranks.accuracy_rank} of ${final.ranks.total_games} by accuracy` +
-      ` (#${final.ranks.score_rank} by score).`;
-  }
-  el("final-text").textContent = text;
+  el("final-score-value").textContent = final.score;
+  el("final-lost-value").textContent = session.ev_lost_total.toFixed(1);
+  el("final-rank-value").textContent = final.ranks
+    ? `#${final.ranks.accuracy_rank}/${final.ranks.total_games}`
+    : "—";
   renderBreakdownTable(final.history);
 }
 
@@ -644,6 +674,10 @@ el("hiscores-close-btn").onclick = () => {
 };
 el("sort-accuracy-btn").onclick = () => openHiscores("accuracy");
 el("sort-score-btn").onclick = () => openHiscores("score");
+
+// The tooltip's position is computed once on hover; if the modal scrolls
+// underneath it, just hide it rather than let it float in the wrong spot.
+document.querySelector("#final-modal .modal").addEventListener("scroll", hideCellTooltip);
 
 const savedNickname = localStorage.getItem("nickname");
 if (savedNickname) {

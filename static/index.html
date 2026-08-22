@@ -10,7 +10,7 @@
   <header class="topbar">
     <h1>So you think you can play Yatzee?</h1>
     <div class="topbar-actions">
-      <button id="hiscores-btn" class="ghost">Hiscores</button>
+      <button id="hiscores-btn" class="gold">Hiscores</button>
       <button id="new-game-btn">New Game</button>
     </div>
   </header>
@@ -51,14 +51,25 @@
 
   <div class="modal-backdrop" id="final-modal" hidden>
     <div class="modal modal-wide modal-scroll">
-      <h2>Game Over</h2>
-      <p id="final-text"></p>
-      <h3 class="breakdown-heading">Move-by-move breakdown</h3>
-      <p class="breakdown-hint">Hover a cell to see the top options and what they'd have cost you.</p>
+      <h2>Game Conclusion</h2>
+      <div class="final-summary">
+        <div class="final-stat">
+          <span class="final-stat-label">Score</span>
+          <span class="final-stat-value" id="final-score-value"></span>
+        </div>
+        <div class="final-stat">
+          <span class="final-stat-label">Total Lost Score</span>
+          <span class="final-stat-value" id="final-lost-value"></span>
+        </div>
+        <div class="final-stat">
+          <span class="final-stat-label">Rank</span>
+          <span class="final-stat-value" id="final-rank-value"></span>
+        </div>
+      </div>
       <div class="breakdown-table-wrap">
         <table class="breakdown-table" id="breakdown-table">
           <colgroup>
-            <col style="width: 64px" />
+            <col style="width: 44px" />
             <col />
             <col />
             <col />
@@ -70,11 +81,13 @@
         </table>
       </div>
       <div class="final-actions">
-        <button id="final-hiscores-btn" class="ghost">View Hiscores</button>
+        <button id="final-hiscores-btn" class="gold">Hiscores</button>
         <button id="final-new-game-btn">Play Again</button>
       </div>
     </div>
   </div>
+
+  <div class="cell-tooltip" id="cell-tooltip" hidden></div>
 
   <div class="modal-backdrop" id="nickname-modal">
     <div class="modal">
